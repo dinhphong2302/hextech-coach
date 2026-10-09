@@ -1,0 +1,19 @@
+{
+  "engine": "claude_cli",
+  "anthropic_api_key": "",
+  "riot_api_key": "RGAPI-...",
+  "riot_game_name": "TenIngame",
+  "riot_tag_line": "VN2",
+  "account_region": "asia",
+  "match_region": "sea",
+  "platform": "vn2",
+  "rank": "Lục Bảo",
+  "record_fps": 8,
+  "keyframe_interval_sec": 12,
+  "max_frames_for_review": 20,
+  "keep_video": true,
+  "max_frames_with_match_data": 18,
+  "skip_review_if_top": 0,
+  "meta_max_age_hours": 72,
+  "keyframe_min_diff": 4.0
+}

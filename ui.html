@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JC Coaching</title>
+<link rel="icon" href="/assets/jc.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Be+Vietnam+Pro:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<style>
+:root{
+  --ground:#0c1317; --surface:#131d22; --raised:#1a272d; --line:#26363d;
+  --text:#e4ebe8; --muted:#8ea1a3; --gold:#d8a94f; --gold-soft:#3a2f1a;
+  --teal:#43b5a6; --teal-soft:#16312e; --bad:#e0685c; --bad-soft:#3a1d1a;
+  --good:#71c57e; --good-soft:#1b3320;
+  --display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --body:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ground);color:var(--text)}
+body{font-family:var(--body);font-size:14px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding:18px 16px 56px}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0}
+.chart svg{display:block;width:100%;height:auto}
+/* Thanh tiêu đề tự vẽ: thay cho thanh trắng của Windows */
+#titlebar{position:fixed;top:0;left:0;right:0;height:38px;z-index:60;display:flex;align-items:stretch;
+  background:linear-gradient(180deg,#132026,#0c1317);border-bottom:1px solid var(--line);user-select:none}
+#titlebar .drag{flex:1;display:flex;align-items:center;gap:9px;padding:0 12px;min-width:0}
+#titlebar img{width:22px;height:22px;border-radius:50%;flex:none}
+#titlebar .name{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.14em;white-space:nowrap}
+#titlebar .name span{color:var(--gold)}
+#titlebar .hint{font-size:11px;color:var(--muted);letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-btns{display:flex;flex:none}
+.tb-btns button{width:44px;border:0;background:transparent;color:var(--muted);cursor:pointer;
+  font-family:var(--mono);font-size:13px;line-height:1}
+.tb-btns button:hover{background:var(--raised);color:var(--text)}
+.tb-btns button.x:hover{background:#7d2a23;color:#fff}
+body.native .wrap{padding-top:52px}
+body.native header.top{justify-content:flex-end}
+body.native header.top h1{display:none}
+body:not(.native) #titlebar{display:none}
+header.top{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);padding-bottom:14px}
+h1{font-family:var(--display);font-size:24px;margin:0;letter-spacing:.02em}
+h1 span{color:var(--gold)}
+.status{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pill{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.07em;padding:5px 11px;border-radius:4px;white-space:nowrap}
+.p-idle{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal)}
+.p-rec{background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+.p-busy{background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold)}
+.p-s{background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+.p-a{background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold)}
+.p-b{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal)}
+.p-c{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+nav{display:flex;gap:4px;flex-wrap:wrap;margin:16px 0 0}
+nav button{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.04em;text-transform:uppercase;
+  background:transparent;color:var(--muted);border:1px solid transparent;border-radius:6px;padding:7px 13px;cursor:pointer}
+nav button:hover{color:var(--text)}
+nav button[aria-selected=true]{color:var(--gold);border-color:var(--gold);background:var(--gold-soft)}
+.btn{font-family:var(--display);font-weight:600;letter-spacing:.05em;text-transform:uppercase;font-size:12px;
+  border-radius:6px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--raised);color:var(--text)}
+.btn.gold{border-color:var(--gold);background:var(--gold);color:#1b1407}
+.btn:disabled{opacity:.45;cursor:default}
+section{padding-top:18px}
+.meta-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.meta-head p{margin:0;color:var(--muted);font-size:12.5px}
+.comp{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.comp summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:46px minmax(180px,2fr) minmax(110px,1fr) repeat(4,62px);
+  gap:12px;align-items:center;padding:12px 14px}
+.comp summary::-webkit-details-marker{display:none}
+.comp[open] summary{border-bottom:1px solid var(--line)}
+.comp .nm{font-family:var(--display);font-weight:600;font-size:15px}
+.comp .sty{color:var(--muted);font-size:12px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;text-align:right}
+.num small{display:block;font-family:var(--body);font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;text-align:right}
+.body{padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.body h4{font-family:var(--display);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--gold);margin:0 0 5px}
+.body p{margin:0;font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{background:var(--raised);border:1px solid var(--line);border-radius:4px;padding:2px 8px;font-size:12.5px}
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:500;background:var(--raised)}
+tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}
+.tag.AD{color:#f0a36b;border-color:#6b4a30}.tag.AP{color:#8fb4ff;border-color:#34466b}
+.tag.Tank{color:var(--good);border-color:#2f5536}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:28px 18px;text-align:center;color:var(--muted)}
+.empty h3{font-family:var(--display);color:var(--text);margin:0 0 6px}
+.logbox{background:#0a1014;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:var(--mono);
+  font-size:12px;color:var(--muted);max-height:220px;overflow:auto;white-space:pre-wrap}
+.grid-s{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.note{color:var(--muted);font-size:12.5px}
+.kvrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kv-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kv-card small{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+.kv-card strong{font-family:var(--mono);font-size:17px;font-weight:500}
+.acct{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:12px}
+.acct small{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.acct strong{font-family:var(--display);font-size:18px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input{font:inherit;font-size:13px;color:var(--text);background:var(--raised);border:1px solid var(--line);
+  border-radius:6px;padding:7px 9px}
+.ic{width:26px;height:26px;border-radius:5px;object-fit:cover;background:var(--raised);
+  border:1px solid var(--line);vertical-align:middle;flex:0 0 auto}
+.ic.sm{width:20px;height:20px;border-radius:4px}
+.ic.lg{width:40px;height:40px;border-radius:7px}
+.ic.trait{border-radius:50%;padding:3px;background:var(--raised);filter:brightness(0) invert(1) opacity(.85)}  /* icon tộc hệ là hình bóng đen, phải đảo màu */
+.nm-row{display:flex;align-items:center;gap:8px;min-width:0}
+.nm-row b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icons{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.unit{display:flex;flex-direction:column;align-items:center;gap:3px;width:54px;text-align:center}
+.unit span{font-size:10.5px;color:var(--muted);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.plc{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:2px;width:40px}
+.plc b{font-family:var(--mono);font-size:12px}
+.crest{width:46px;height:46px;object-fit:contain}
+.acct-left{display:flex;align-items:center;gap:12px}
+.subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.subnav button{font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid var(--line);
+  background:var(--surface);color:var(--muted);cursor:pointer;font-family:var(--body)}
+.subnav button[aria-selected=true]{color:var(--gold);border-color:var(--gold);background:var(--gold-soft)}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{color:var(--text)}
+th.sortable::after{content:"";opacity:.5;font-size:9px;margin-left:4px}
+th.sortable.asc::after{content:"▲"}
+th.sortable.desc::after{content:"▼"}
+.sg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.sg-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.sg-card h5{font-family:var(--display);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px}
+.sg-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;border-bottom:1px solid var(--line)}
+.sg-row:last-child{border-bottom:none}
+details.legend{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:12px}
+details.legend summary{cursor:pointer;padding:10px 14px;font-size:13px;color:var(--gold);
+  font-family:var(--display);letter-spacing:.04em;list-style:none;display:flex;align-items:center;gap:8px}
+details.legend summary::-webkit-details-marker{display:none}
+details.legend summary::before{content:"?";width:18px;height:18px;border-radius:50%;border:1px solid var(--gold);
+  display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+details.legend[open] summary{border-bottom:1px solid var(--line)}
+.legend-body{padding:12px 14px}
+.legend-body table{font-size:13px}
+.legend-body td:first-child{width:56px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+label.f input,label.f textarea,label.f select{font:inherit;font-size:13px;color:var(--text);background:var(--raised);
+  border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;box-sizing:border-box;text-transform:none;letter-spacing:0}
+textarea{resize:vertical;font-family:var(--body)}
+.md{background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+  overflow-x:auto;font-size:13.5px;min-height:120px}
+.md h1,.md h2,.md h3{font-family:var(--display);color:var(--gold);font-size:15px;margin:14px 0 6px}
+.md table{margin:8px 0;font-size:13px}
+.md code{font-family:var(--mono);font-size:12px;background:var(--surface);padding:1px 4px;border-radius:3px}
+.md strong{color:#fff}
+.md ul,.md ol{padding-left:20px;margin:6px 0}
+h4.sec{font-family:var(--display);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--gold);margin:18px 0 6px}
+@media (max-width:760px){
+  .comp summary{grid-template-columns:40px 1fr 60px;row-gap:6px}
+  .comp summary .sty,.comp summary .num.hide-s{display:none}
+}
+</style>
+</head>
+<body>
+<div id="titlebar">
+  <div class="drag pywebview-drag-region">
+    <img src="/assets/tray.png" alt="">
+    <span class="name">JC <span>COACHING</span></span>
+    <span class="hint">Đóng cửa sổ là thu xuống khay, app vẫn ghi hình</span>
+  </div>
+  <div class="tb-btns">
+    <button id="tb-min" title="Thu nhỏ">&#9472;</button>
+    <button id="tb-max" title="Phóng to / thu lại">&#9723;</button>
+    <button id="tb-close" class="x" title="Thu xuống khay hệ thống">&#10005;</button>
+  </div>
+</div>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>JC <span>COACHING</span></h1>
+    </div>
+    <div class="status">
+      <span class="pill p-idle" id="phase">…</span>
+      <button class="btn" id="btn-meta">Cập nhật meta</button>
+    </div>
+  </header>
+
+  <nav role="tablist">
+    <button data-tab="comps" aria-selected="true">Đội hình</button>
+    <button data-tab="items" aria-selected="false">Trang bị</button>
+    <button data-tab="augs" aria-selected="false">Lõi</button>
+    <button data-tab="stats" aria-selected="false">Số liệu</button>
+    <button data-tab="me" aria-selected="false">Cá nhân</button>
+    <button data-tab="advise" aria-selected="false">Cố vấn</button>
+    <button data-tab="book" aria-selected="false">Cẩm nang</button>
+    <button data-tab="games" aria-selected="false">Trận đấu</button>
+  </nav>
+
+  <section id="tab-comps">
+    <div class="meta-head">
+      <p id="meta-info">…</p>
+      <p class="note">Dấu * nghĩa là số của tướng carry, không phải số riêng của đội hình đó.</p>
+    </div>
+    <div id="comps"></div>
+  </section>
+
+  <section id="tab-items" hidden><div id="items"></div></section>
+  <section id="tab-augs" hidden>
+    <div class="row" style="margin-bottom:10px">
+      <input id="aug-search" placeholder="Tìm tên lõi hoặc từ trong mô tả" style="flex:1 1 260px">
+      <div class="subnav" id="aug-tier" style="margin:0">
+        <button data-t="" aria-selected="true">Tất cả</button>
+        <button data-t="Bạc" aria-selected="false">Bạc</button>
+        <button data-t="Vàng" aria-selected="false">Vàng</button>
+        <button data-t="Ngọc" aria-selected="false">Ngọc</button>
+      </div>
+    </div>
+    <div id="augs"></div>
+  </section>
+
+  <section id="tab-stats" hidden>
+    <div class="meta-head">
+      <p id="global-info">…</p>
+      <button class="btn gold" id="btn-research">Thu thập số liệu</button>
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <label class="note" for="min-games">Chỉ hiện mục có ít nhất</label>
+      <input id="min-games" type="number" min="0" step="10" value="0" style="width:86px">
+      <span class="note">lượt chơi</span>
+    </div>
+    <div class="subnav" id="stats-sub">
+      <button data-sub="carries" aria-selected="true">Theo carry</button>
+      <button data-sub="traits" aria-selected="false">Theo tộc hệ</button>
+      <button data-sub="items" aria-selected="false">Theo trang bị</button>
+    </div>
+    <div id="global"></div>
+  </section>
+
+  <section id="tab-me" hidden>
+    <div class="acct">
+      <div>
+        <small>Tài khoản Riot</small>
+        <strong id="acct-name">chưa chọn</strong>
+      </div>
+      <div class="row">
+        <button class="btn gold" id="btn-detect">Nhận từ Riot Client</button>
+        <input id="acct-input" placeholder="hoặc gõ Tên#TAG" style="width:190px">
+        <button class="btn" id="btn-acct">Lưu</button>
+      </div>
+    </div>
+    <p class="note" id="acct-msg" hidden></p>
+    <div class="meta-head">
+      <p id="profile-info">…</p>
+      <button class="btn gold" id="btn-profile">Cập nhật hồ sơ</button>
+    </div>
+    <div id="profile"></div>
+  </section>
+
+  <section id="tab-advise" hidden>
+    <p class="note" style="margin:0 0 12px">Dùng giữa các trận hoặc khi xem lại. Bốn agent chạy lần lượt:
+      Meta Analyst lấy số từ dữ liệu app tự thu thập · Lineup Tactician dựng lộ trình ·
+      Scout phản biện rủi ro · Head Coach chốt phương án.</p>
+    <div class="grid2">
+      <div class="box stack">
+        <div class="fields">
+          <label class="f">Stage<input id="a-stage" value="3-2"></label>
+          <label class="f">Máu<input id="a-hp" type="number" min="0" max="100" value="58"></label>
+          <label class="f">Vàng<input id="a-gold" type="number" min="0" value="42"></label>
+          <label class="f">Level<input id="a-lvl" type="number" min="1" max="10" value="6"></label>
+          <label class="f">Chuỗi
+            <select id="a-streak"><option value="thua">Thua</option><option value="thắng">Thắng</option><option value="không">Không</option></select>
+          </label>
+          <label class="f">Số trận<input id="a-streakn" type="number" min="0" value="3"></label>
+        </div>
+        <label class="f">Mảnh đồ đang có<input id="a-comps" placeholder="Kiếm, Kiếm, Găng, Đai"></label>
+        <label class="f">Đồ đã ghép<input id="a-items" placeholder="Vô Cực Kiếm trên Ashe"></label>
+        <label class="f">Tướng trên sân<textarea id="a-board" rows="2" placeholder="Ashe 2★, Maokai 1★, Sivir 1★"></textarea></label>
+        <label class="f">Lõi đã có<input id="a-had" placeholder="tên lõi đã chọn ở 2-1, 3-2"></label>
+        <label class="f">Lõi đang phân vân<input id="a-aug" placeholder="Lõi A / Lõi B / Lõi C"></label>
+        <label class="f">Ghi chú sảnh<input id="a-lobby" placeholder="ai đang đánh bài gì, ai mạnh"></label>
+        <div class="row">
+          <button class="btn gold" id="btn-advise">Hỏi cố vấn</button>
+          <span class="note" id="a-msg"></span>
+        </div>
+      </div>
+      <div class="box stack">
+        <h4 class="sec" style="margin-top:0">Kết quả</h4>
+        <div id="advice" class="md">Điền tình huống bên trái rồi bấm Hỏi cố vấn. Mất khoảng 1–2 phút.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-book" hidden>
+    <div class="meta-head">
+      <p id="book-info">…</p>
+      <div class="row">
+        <div class="subnav" id="book-sub" style="margin:0">
+          <button data-b="hb" aria-selected="true">Từ tài liệu Dishsoap</button>
+          <button data-b="base" aria-selected="false">Khung nền của app</button>
+        </div>
+        <button class="btn gold" id="btn-book">Tra lại tài liệu</button>
+      </div>
+    </div>
+    <div id="book" class="md">Đang tải…</div>
+  </section>
+
+  <section id="tab-games" hidden>
+    <div class="grid-s" style="margin-bottom:14px">
+      <div class="tbl" style="padding:12px 14px">
+        <h4 style="font-family:var(--display);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--gold);margin:0 0 6px">Nhật ký</h4>
+        <div class="logbox" id="log">…</div>
+      </div>
+    </div>
+    <div id="report-view" hidden>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <h4 class="sec" style="margin:0" id="report-title">Báo cáo</h4>
+        <button class="btn" id="report-close">Đóng</button>
+      </div>
+      <div id="report-body" class="md"></div>
+    </div>
+    <div class="tbl"><table id="games"></table></div>
+  </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;","&gt;":"&gt;",">":"&gt;",'"':"&quot;"}[c]));
+const tierClass = t => ({S:"p-s",A:"p-a",B:"p-b"}[String(t||"").toUpperCase()] || "p-c");
+const tierCell = t => t ? '<span class="pill ' + tierClass(t) + '">' + esc(t) + '</span>' : '<span class="note">—</span>';
+const fmt = (v, s = "") => (v === null || v === undefined || v === "") ? "—" : v + s;
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+  document.querySelectorAll("section").forEach(s => s.hidden = s.id !== "tab-" + b.dataset.tab);
+});
+
+function emptyState(msg) {
+  return `<div class="empty"><h3>Chưa có dữ liệu meta</h3><p>${msg}</p></div>`;
+}
+
+function renderComps(meta) {
+  META_IMG = meta.images || {};
+  const comps = meta.comps || [];
+  if (!comps.length) { $("comps").innerHTML = emptyState("Bấm “Cập nhật meta” để tra tier list patch hiện tại từ TFTAcademy và các trang thống kê."); return; }
+  const order = {S:0, A:1, B:2, C:3};
+  comps.sort((a,b) => (order[a.tier] ?? 9) - (order[b.tier] ?? 9) || ((a.stats?.avg_place ?? 9) - (b.stats?.avg_place ?? 9)));
+  $("comps").innerHTML = tierLegend("meta") + comps.map(c => {
+    const s = c.stats || {};
+    const items = Object.entries(c.carry_items || {}).map(([u, arr]) =>
+      '<div class="nm-row" style="margin-bottom:6px">' + icon(imgOf(u)) + "<b>" + esc(u) + "</b>" +
+      '<span class="icons">' + (arr || []).map(i =>
+        imgOf(i) ? '<img class="ic sm" src="' + esc(imgOf(i)) + '" title="' + esc(i) + '" alt="" loading="lazy">'
+                 : '<span class="chip">' + esc(i) + "</span>").join("") + "</span></div>").join("") || "<p>—</p>";
+    return `<details class="comp"><summary>
+      ${tierCell(c.tier)}
+      <span class="nm-row"><span class="icons">${(c.core_units || []).slice(0, 4).map(u =>
+        imgOf(u) ? `<img class="ic" src="${esc(imgOf(u))}" title="${esc(u)}" alt="" loading="lazy">` : "").join("")}</span>
+        <span><span class="nm">${esc(c.name)}</span><br><span class="sty">${esc(c.difficulty || "")}</span></span></span>
+      <span class="sty">${esc(c.style || "")}</span>
+      <span class="num" title="${s.by_carry ? "Số của carry " + esc(s.by_carry) + ", không phải riêng bài này" : ""}">${fmt(s.avg_place)}${s.by_carry ? "*" : ""}<small>Hạng TB</small></span>
+      <span class="num hide-s">${fmt(s.top4, "%")}<small>Top 4</small></span>
+      <span class="num hide-s">${fmt(s.win, "%")}<small>Top 1</small></span>
+      <span class="num hide-s">${fmt(s.pick_rate, "%")}<small>Chọn</small></span>
+      </summary>
+      <div class="body">
+        <div><h4>Tướng lõi</h4><div class="icons">${(c.core_units || []).map(u =>
+          `<span class="unit">${imgOf(u) ? `<img class="ic lg" src="${esc(imgOf(u))}" alt="" loading="lazy">` : `<span class="ic lg"></span>`}<span>${esc(u)}</span></span>`).join("") || "—"}</div></div>
+        <div><h4>Đồ carry</h4>${items}</div>
+        <div><h4>Lõi ưu tiên</h4><div class="chips">${(c.augments || []).map(a =>
+          `<span class="chip">${imgOf(a) ? `<img class="ic sm" src="${esc(imgOf(a))}" alt="" loading="lazy"> ` : ""}${esc(a)}</span>`).join("") || "—"}</div></div>
+        <div><h4>Điều kiện đánh</h4><p>${esc(c.conditions || "—")}</p></div>
+        <div><h4>Kế hoạch roll</h4><p>${esc(c.roll_plan || "—")}</p></div>
+        <div><h4>Ấn / tướng đặc biệt</h4><p>${esc(c.emblems_or_special || "—")}</p></div>
+        ${s.by_carry ? `<div><h4>Số liệu của carry ${esc(s.by_carry)}</h4>
+          <p>Hạng TB ${fmt(s.avg_place)} · Top 4 ${fmt(s.top4, "%")} · Top 1 ${fmt(s.win, "%")} · chọn ${fmt(s.pick_rate, "%")}</p>
+          <p class="note">Đây là số của tướng ${esc(s.by_carry)} trên mọi đội hình trong dữ liệu app tự thu thập,
+          không phải số riêng của bài này.</p></div>` : ""}
+      </div></details>`;
+  }).join("");
+}
+
+function renderItems(meta) {
+  const items = meta.items || [];
+  if (!items.length) { $("items").innerHTML = emptyState("Bảng trang bị sẽ có sau khi cập nhật meta."); return; }
+  const sm = meta.item_stats_meta;
+  const note = sm ? `<p class="note" style="margin:0 0 10px">${items.length} món, hạng TB / Top 4 / tỉ lệ dùng tính từ ${sm.matches} trận Thách Đấu · Đại Cao Thủ mà app tự tải. Công thức ghép lấy từ dữ liệu game. Tier tự xếp theo hạng TB: S ≤ 3.80 · A ≤ 4.10 · B ≤ 4.40.</p>` : "";
+  $("items").innerHTML = tierLegend("auto") + note + `<div class="tbl"><table>
+    <thead><tr><th>Tier</th><th>Trang bị</th><th>Công thức</th><th>Hợp với</th><th>Hạng TB</th><th>Top 4</th><th>Tỉ lệ dùng</th></tr></thead>
+    <tbody>${items.map(i => `<tr>
+      <td>${tierCell(i.tier)}${i.tier_auto ? "" : ""}</td>
+      <td>${nameCell(imgOf(i.name), i.name)}${i.role ? ` <span class="tag ${esc(i.role)}">${esc(i.role)}</span>` : ""}</td>
+      <td class="note">${esc(i.recipe || "—")}</td>
+      <td class="note">${esc(i.best_on || i.notes || "—")}</td>
+      <td class="num">${fmt(i.stats?.avg_place)}</td>
+      <td class="num">${fmt(i.stats?.top4, "%")}</td>
+      <td class="num">${fmt(i.stats?.pick_rate, "%")}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+function renderAugs() {
+  const rows = (AUGS.augments || []);
+  if (!rows.length) {
+    $("augs").innerHTML = emptyState("Chưa có bảng lõi. Bấm “Cập nhật meta” để app tải dữ liệu game.");
+    return;
+  }
+  const q = ($("aug-search").value || "").trim().toLowerCase();
+  const tier = AUG_TIER;
+  const view = rows.filter(r => (!tier || r.tier === tier) &&
+    (!q || (r.name || "").toLowerCase().includes(q) || (r.desc || "").toLowerCase().includes(q)));
+  const badge = {"Bạc": "p-b", "Vàng": "p-a", "Ngọc": "p-s"};
+  $("augs").innerHTML =
+    '<p class="note" style="margin:0 0 10px">' + rows.length + " lõi của set, lấy thẳng từ dữ liệu game. " +
+    (AUGS.rated ? AUGS.rated + " lõi có thêm đánh giá từ trang meta." : "Chưa có đánh giá từ trang meta.") +
+    (view.length !== rows.length ? " Đang hiện " + view.length + " lõi." : "") + "</p>" +
+    '<div class="tbl"><table><thead><tr><th>Bậc</th><th>Lõi</th><th>Tác dụng</th><th>Đánh giá web</th></tr></thead><tbody>' +
+    view.map(r => "<tr>" +
+      "<td>" + (r.tier ? '<span class="pill ' + (badge[r.tier] || "p-c") + '">' + esc(r.tier) + "</span>"
+                       : '<span class="note">—</span>') + "</td>" +
+      "<td>" + nameCell(r.url, r.name) + "</td>" +
+      '<td class="note">' + esc(r.desc || "—") + "</td>" +
+      '<td class="note">' + (r.web_tier ? "<b>" + esc(r.web_tier) + "</b> · " : "") +
+        esc(r.best_for || r.notes || "—") + "</td></tr>").join("") +
+    "</tbody></table></div>";
+}
+
+function tierLegend(kind) {
+  const rows = [
+    ["S", "p-s", "Mạnh nhất patch", "Đánh được cả khi điều kiện không hoàn hảo. Thấy mở bài hợp là nên đi.", "≤ 3.80"],
+    ["A", "p-a", "Mạnh, ổn định", "Cần một điều kiện: một lõi hợp, một món đồ lõi, hoặc không bị ai tranh.", "3.81 – 4.10"],
+    ["B", "p-b", "Khá", "Chỉ đánh khi mở bài đẩy vào hoặc sảnh trống. Không nên chủ động ép.", "4.11 – 4.40"],
+    ["C", "p-c", "Yếu ở patch này", "Chỉ đánh khi bị ép, không còn hướng nào khác.", "> 4.40"],
+  ];
+  return '<details class="legend"><summary>Tier và các con số nghĩa là gì?</summary><div class="legend-body">' +
+    '<table><thead><tr><th>Tier</th><th>Mức</th><th>Khi nào nên đánh</th><th>Hạng TB tương ứng</th></tr></thead><tbody>' +
+    rows.map(r => '<tr><td><span class="pill ' + r[1] + '">' + r[0] + "</span></td><td><b>" + r[2] +
+      '</b></td><td class="note">' + r[3] + '</td><td class="num" style="text-align:left">' + r[4] +
+      "</td></tr>").join("") + "</tbody></table>" +
+    '<p class="note" style="margin-top:10px"><b>Hạng trung bình</b>: hạng bạn về trung bình mỗi trận, 1 là tốt nhất, 8 là tệ nhất. ' +
+    'Mốc 4.50 là hòa vốn LP — dưới 4.50 là lên hạng, trên 4.50 là tụt.<br>' +
+    '<b>Top 4</b>: tỉ lệ vào bốn hạng đầu, tức tỉ lệ ăn LP. <b>Top 1</b>: tỉ lệ về nhất. ' +
+    '<b>Tỉ lệ chọn</b>: bao nhiêu phần trăm người chơi đang đánh bài này — càng cao càng dễ bị tranh tướng.</p>' +
+    (kind === "auto"
+      ? '<p class="note"><b>Nguồn tier ở bảng này:</b> app tự xếp theo hạng trung bình đo được từ dữ liệu Riot mà app tải về.</p>'
+      : '<p class="note"><b>Nguồn tier ở bảng này:</b> lấy từ TFTAcademy và các trang meta. Ô trống nghĩa là nguồn không xếp hạng mục đó.</p>') +
+    "</div></details>";
+}
+
+function icon(url, cls) {
+  return url ? '<img class="ic ' + (cls || "") + '" src="' + esc(url) + '" alt="" loading="lazy">' : "";
+}
+function nameCell(url, name, cls) {
+  return '<div class="nm-row">' + icon(url, cls) + "<b>" + esc(name) + "</b></div>";
+}
+let META_IMG = {};
+let GLOBAL = {}, STATS_SUB = "carries";
+let AUGS = {}, AUG_TIER = "";
+const SORT = {carries: ["avg_place", 1], traits: ["avg_place", 1], items: ["avg_place", 1]};
+function imgOf(name) { return META_IMG[String(name || "").trim()] || ""; }
+
+function renderGlobal(g) {
+  GLOBAL = g || {};
+  const carries = (g && g.carries) || [];
+  if (!carries.length) {
+    $("global").innerHTML = emptyState("Bấm “Thu thập số liệu” để app tự tải trận Thách Đấu / Đại Cao Thủ từ nhiều server qua Riot API rồi tự tính. Với key development mất khoảng 15 phút.");
+    return;
+  }
+  const m = g.meta || {};
+  const servers = (m.platforms || []).map(p => esc(p.platform) + " " + p.matches).join(" · ");
+  const head = '<p class="note" style="margin:0 0 10px">' + m.matches + " trận · " + m.participants +
+    " lượt chơi · bậc " + (m.tiers || []).join(", ") + " · server: " + servers +
+    (m.finished ? " · tính lúc " + esc(String(m.finished).replace("T", " ")) : "") +
+    (function () {
+      if (!m.finished) return "";
+      const days = (Date.now() - new Date(m.finished).getTime()) / 86400000;
+      return days > 3 ? ' <span style="color:var(--bad)">· dữ liệu đã ' + Math.floor(days) +
+        " ngày, nên thu thập lại</span>" : "";
+    })() + "</p>";
+
+  const cols = {
+    carries: [["name", "Carry", "name"], ["avg_place", "Hạng TB"], ["top4", "Top 4", "pct"],
+              ["win", "Top 1", "pct"], ["pick_rate", "Tỉ lệ chọn", "pct"],
+              ["star3_rate", "Tỉ lệ 3★", "pct"], ["top_traits", "Tộc hệ hay đi kèm", "list"],
+              ["games", "Số trận"]],
+    traits: [["name", "Tộc hệ", "name"], ["avg_place", "Hạng TB"], ["top4", "Top 4", "pct"],
+             ["win", "Top 1", "pct"], ["pick_rate", "Tỉ lệ chọn", "pct"], ["games", "Số trận"]],
+    items: [["name", "Trang bị", "name"], ["recipe", "Công thức", "list"], ["avg_place", "Hạng TB"],
+            ["top4", "Top 4", "pct"], ["win", "Top 1", "pct"], ["pick_rate", "Tỉ lệ dùng", "pct"],
+            ["games", "Số lượt"]],
+  }[STATS_SUB];
+  const minG = Number(($("min-games") || {}).value || 0);
+  let rows = (g[STATS_SUB] || []).slice().filter(r => (r.games || 0) >= minG);
+  const [key, dir] = SORT[STATS_SUB];
+  rows.sort((a, b) => (typeof a[key] === "string" ? String(a[key]).localeCompare(String(b[key]))
+                                                  : (a[key] || 0) - (b[key] || 0)) * dir);
+  const tierOf = v => v <= 3.8 ? "S" : v <= 4.1 ? "A" : v <= 4.4 ? "B" : "C";
+
+  $("global").innerHTML = tierLegend("auto") + head +
+    '<p class="note" style="margin:-4px 0 10px">Bấm tiêu đề cột để sắp xếp.</p>' +
+    '<div class="tbl"><table><thead><tr><th>Tier</th>' +
+    cols.map(c => '<th class="sortable ' + (c[0] === key ? (dir === 1 ? "asc" : "desc") : "") +
+      '" data-k="' + c[0] + '">' + c[1] + "</th>").join("") + "</tr></thead><tbody>" +
+    rows.map(r => "<tr><td>" + tierCell(tierOf(r.avg_place)) + "</td>" +
+      cols.map(c => {
+        const v = r[c[0]];
+        if (c[2] === "name") return "<td>" + nameCell(r.img, r.name, STATS_SUB === "traits" ? "trait" : "") + "</td>";
+        if (c[2] === "list") return '<td class="note">' + ((v || []).map(esc).join(" · ") || "—") + "</td>";
+        if (c[2] === "pct") return "<td>" + fmt(v, "%") + "</td>";
+        return "<td>" + fmt(v) + "</td>";
+      }).join("") + "</tr>").join("") + "</tbody></table></div>";
+
+  $("global").querySelectorAll("th.sortable").forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    SORT[STATS_SUB] = (SORT[STATS_SUB][0] === k) ? [k, -SORT[STATS_SUB][1]] : [k, k === "name" ? 1 : 1];
+    renderGlobal(GLOBAL);
+  });
+}
+
+function statTable(title, rows, label) {
+  if (!rows || !rows.length) return "";
+  return '<h4 class="sec">' + title + '</h4><div class="tbl"><table><thead><tr><th>' + label +
+    "</th><th>Trận</th><th>Hạng TB</th><th>Top 4</th><th>Top 1</th></tr></thead><tbody>" +
+    rows.map(r => "<tr><td>" + nameCell(r.img, r.name, label === "Tộc hệ" ? "trait" : "") + "</td><td>" + r.games + "</td><td>" + r.avg_place +
+      "</td><td>" + r.top4 + "%</td><td>" + r.win + "%</td></tr>").join("") + "</tbody></table></div>";
+}
+
+function suggestBlock(sg) {
+  if (!sg || (!sg.drop || !sg.drop.length) && (!sg.try || !sg.try.length)) return "";
+  const card = (title, color, rows, body) => rows.length ? '<div class="sg-card"><h5 style="color:' + color + '">' +
+    title + "</h5>" + rows.map(body).join("") + "</div>" : "";
+  const line = (img, name, right) => '<div class="sg-row">' + icon(img, "sm") + "<b>" + esc(name) + "</b>" +
+    '<span class="note" style="margin-left:auto">' + right + "</span></div>";
+  return '<h4 class="sec">Gợi ý cho bạn</h4><div class="sg-grid">' +
+    card("Nên bỏ", "var(--bad)", sg.drop || [], r => line(r.img, r.carry,
+      "bạn " + r.mine + " · chung " + r.global + " (+" + r.diff + ")")) +
+    card("Đang chơi tốt", "var(--good)", sg.keep || [], r => line(r.img, r.carry,
+      "bạn " + r.mine + " · chung " + r.global)) +
+    card("Nên thử", "var(--gold)", sg.try || [], r => line(r.img, r.carry,
+      "hạng TB chung " + r.global + " · chọn " + r.pick_rate + "%")) +
+    '</div><p class="note">Dựa trên ' + (sg.min_games || 40) +
+    " lượt chơi trở lên ở dữ liệu tự thu thập. “Nên bỏ” là bài bạn đang kém mặt bằng từ 0.7 hạng.</p>";
+}
+
+/* Biểu đồ do app dựng sẵn ở dạng SVG, chỉ việc gắn vào trang */
+function chartBlock(c) {
+  if (!c) return "";
+  let out = "";
+  if (c.bars) out += '<h4 class="sec">Phân bố hạng 1–8</h4><div class="chart">' + c.bars +
+    '<p class="note">Cột vàng là hạng 1, xanh là Top 4, đỏ là ngoài Top 4.</p></div>';
+  if (c.lp) out += '<h4 class="sec">LP theo thời gian</h4><div class="chart">' + c.lp + "</div>";
+  else out += '<h4 class="sec">LP theo thời gian</h4><p class="note">Riot API không trả lịch sử LP nên app tự ghi lại mỗi lần cập nhật hồ sơ. Hiện có ' +
+    (c.lp_points || 0) + ' mốc, cần ít nhất 2 mốc mới vẽ được đường.</p>';
+  return out;
+}
+
+/* Điểm mạnh và điểm yếu: app tự tính từ số thật, không nhờ AI */
+function manhYeuBlock(m) {
+  if (!m) return "";
+  const co = (m.manh || []).length + (m.yeu || []).length;
+  if (!co) return '<h4 class="sec">Điểm mạnh và điểm yếu</h4><p class="note">' +
+    esc(m.ghi_chu || "Chưa đủ dữ liệu.") + "</p>";
+  const dong = (x, tot) =>
+    '<tr><td><span class="pill ' + (tot ? "p-b" : "p-s") + '">' + (tot ? "MẠNH" : "YẾU") +
+    "</span></td><td><b>" + esc(x.y) + "</b>" +
+    (x.chi_tiet ? '<div class="note" style="margin-top:3px">' + esc(x.chi_tiet) + "</div>" : "") +
+    '</td><td class="num">' + esc(x.so) + "</td></tr>";
+  return '<h4 class="sec">Điểm mạnh và điểm yếu</h4><div class="tbl"><table><thead><tr>' +
+    "<th>Mặt</th><th>Nhận định</th><th>Bằng chứng</th></tr></thead><tbody>" +
+    (m.manh || []).map(x => dong(x, true)).join("") +
+    (m.yeu || []).map(x => dong(x, false)).join("") +
+    '</tbody></table></div><p class="note">' + esc(m.ghi_chu || "") + "</p>";
+}
+
+function renderProfile(p) {
+  if (!p || !p.games) {
+    $("profile").innerHTML = emptyState("Bấm “Cập nhật hồ sơ” để lấy rank, 20 trận gần nhất, bài hay chơi và tỉ lệ Top 4 / Top 1 từ tài khoản Riot của bạn.");
+    return;
+  }
+  const color = pl => pl === 1 ? "var(--gold)" : pl <= 4 ? "var(--good)" : "var(--bad)";
+  const strip = (p.placements || []).map(x =>
+    '<span class="plc" title="' + esc(x.carry) + " · " + esc(x.trait) + " · " + esc(x.date) + '">' +
+    (x.carry_img ? '<img class="ic" src="' + esc(x.carry_img) + '" alt="" loading="lazy" style="border-color:' + color(x.place) + '">'
+                 : '<span class="ic"></span>') +
+    '<b style="color:' + color(x.place) + '">#' + x.place + "</b></span>").join("");
+  const rankParts = String(p.rank || "chưa xếp hạng").split(" · ");
+  const kpi = [["Rank", rankParts[0], rankParts.slice(1).join(" · ")], ["Hạng TB", p.avg_place],
+               ["Top 4", p.top4 + "%"], ["Top 1", p.win + "%"], ["Số trận", p.games]];
+  let cmp = "";
+  if ((p.vs_global || []).length) {
+    cmp = '<h4 class="sec">So với mặt bằng chung</h4><div class="tbl"><table><thead><tr><th>Carry</th>' +
+      "<th>Trận của bạn</th><th>Hạng TB của bạn</th><th>Hạng TB chung</th><th>Chênh lệch</th></tr></thead><tbody>" +
+      p.vs_global.map(r => "<tr><td><b>" + esc(r.carry) + "</b></td><td>" + r.games + "</td><td>" + r.mine +
+        "</td><td>" + r.global + '</td><td style="color:' + (r.diff > 0 ? "var(--bad)" : "var(--good)") + '">' +
+        (r.diff > 0 ? "+" : "") + r.diff + "</td></tr>").join("") +
+      "</tbody></table></div><p class=\"note\">Số dương nghĩa là bạn đang chơi bài đó kém hơn mặt bằng chung.</p>";
+  }
+  $("profile").innerHTML =
+    '<div class="kvrow">' + kpi.map((kv, i) => '<div class="kv-card">' +
+      (i === 0 && p.rank_img ? '<div class="acct-left"><img class="crest" src="' + esc(p.rank_img) + '" alt=""><div>' : "") +
+      "<small>" + kv[0] + "</small><strong>" + esc(kv[1]) + "</strong>" +
+      (kv[2] ? '<div class="note" style="font-size:11.5px">' + esc(kv[2]) + "</div>" : "") +
+      (i === 0 && p.rank_img ? "</div></div>" : "") + "</div>").join("") + "</div>" +
+    '<h4 class="sec">' + p.games + ' trận gần nhất (mới → cũ)</h4><div class="chips">' + strip + "</div>" +
+    manhYeuBlock(p.manh_yeu) +
+    chartBlock(p.charts) +
+    statTable("Bài hay chơi (theo carry)", p.by_carry, "Carry") +
+    statTable("Tộc hệ chính", (p.by_trait || []).slice(0, 8), "Tộc hệ") +
+    suggestBlock(p.suggestions) +
+    statTable("Lõi hay chọn", (p.by_augment || []).slice(0, 10), "Lõi") +
+    (p.augments_available === false ? '<p class="note">Set 18 không trả về dữ liệu lõi qua Riot API, nên phần lõi chỉ có ở tab Lõi (nguồn TFTAcademy).</p>' : "") + cmp;
+}
+
+async function showReport(name) {
+  const box = $("report-view"), body = $("report-body");
+  box.hidden = false;
+  $("report-title").textContent = "Báo cáo trận " + name;
+  body.textContent = "Đang mở...";
+  box.scrollIntoView({behavior: "smooth", block: "start"});
+  try {
+    const d = await (await fetch("/api/report?session=" + encodeURIComponent(name))).json();
+    if (d.error) { body.textContent = d.error; return; }
+    const html = window.marked ? marked.parse(d.text) : d.text.replace(/\n/g, "<br>");
+    body.innerHTML = window.DOMPurify ? DOMPurify.sanitize(html) : html;
+  } catch (e) {
+    body.textContent = "Không đọc được báo cáo: " + e;
+  }
+}
+
+let BOOK = {}, BOOK_TAB = "hb", BOOK_PENDING = false;
+
+function renderBook() {
+  const el = $("book");
+  const text = BOOK_TAB === "hb" ? (BOOK.handbook || "") : (BOOK.base || "");
+  $("book-info").textContent = BOOK_TAB === "hb"
+    ? (BOOK.at ? "Tra từ tài liệu Dishsoap, cập nhật lúc " + BOOK.at : "Chưa tra tài liệu Dishsoap")
+    : "Khung nền do app dựng sẵn, dùng để chấm trận";
+  if (!text) {
+    el.innerHTML = emptyState("Bấm “Tra lại tài liệu” để app đọc các bài viết, video và podcast của Dishsoap rồi tổng hợp thành cẩm nang. Mất khoảng 3–6 phút.");
+    return;
+  }
+  const html = window.marked ? marked.parse(text) : text.replace(/\n/g, "<br>");
+  el.innerHTML = window.DOMPurify ? DOMPurify.sanitize(html) : html;
+}
+
+function renderState(s) {
+  const phase = $("phase");
+  if (s.busy) { phase.className = "pill p-busy"; phase.textContent = s.busy; }
+  else if (s.phase === "recording") { phase.className = "pill p-rec"; phase.textContent = "ĐANG GHI TRẬN"; }
+  else { phase.className = "pill p-idle"; phase.textContent = "ĐANG CHỜ TRẬN"; }
+  $("meta-info").textContent = s.meta_updated ? `Meta cập nhật lúc ${s.meta_updated}` : "Chưa có dữ liệu meta";
+  $("btn-meta").disabled = !!s.busy;
+  $("btn-research").disabled = !!s.busy;
+  $("btn-advise").disabled = !!s.busy;
+  $("btn-book").disabled = !!s.busy;
+  if (!s.busy && BOOK_PENDING) { BOOK_PENDING = false; fetch("/api/handbook").then(r => r.json()).then(d => { BOOK = d; renderBook(); }); }
+  if (!s.busy && $("a-msg").textContent.startsWith("Bốn agent")) $("a-msg").textContent = "";
+  $("btn-profile").disabled = !!s.busy;
+  $("global-info").textContent = s.global_updated
+    ? "Số liệu tự thu thập, cập nhật lúc " + s.global_updated + (s.progress ? " · " + s.progress : "")
+    : (s.progress ? "Đang thu thập: " + s.progress : "Chưa thu thập số liệu");
+  $("acct-name").textContent = s.account || "chưa chọn";
+  $("btn-detect").disabled = !!s.busy;
+  $("btn-acct").disabled = !!s.busy;
+  $("profile-info").textContent = s.profile_updated ? "Hồ sơ cập nhật lúc " + s.profile_updated : "Chưa có hồ sơ";
+  $("log").textContent = (s.log || []).join("\n") || "—";
+  $("games").innerHTML = `<thead><tr><th>Trận</th><th>Hạng</th><th>Báo cáo</th></tr></thead><tbody>` +
+    ((s.sessions || []).map(g => `<tr>
+      <td class="num" style="text-align:left">${esc(g.name)}</td>
+      <td class="num" style="text-align:left">${g.placement ? "#" + g.placement : "—"}</td>
+      <td>${g.report ? `<button class="btn view" data-s="${esc(g.name)}">Xem</button>`
+        : `<button class="btn review" data-s="${esc(g.name)}" ${s.busy ? "disabled" : ""}>Review</button>`}</td>
+    </tr>`).join("") || `<tr><td colspan="3" class="note">Chưa có trận nào được ghi.</td></tr>`) + "</tbody>";
+  document.querySelectorAll("button.view").forEach(b => b.onclick = () => showReport(b.dataset.s));
+  document.querySelectorAll("button.review").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    await post("/api/review?session=" + encodeURIComponent(b.dataset.s));
+  });
+}
+
+async function post(url) {
+  const r = await fetch(url, {method: "POST"});
+  const d = await r.json().catch(() => ({}));
+  if (d.error) alert(d.error);
+  refresh();
+}
+
+let lastMeta = "", lastGlobal = "", lastProfile = "", lastAdvice = "";
+async function refresh() {
+  try {
+    const s = await (await fetch("/api/state")).json();
+    renderState(s);
+    const key = String(s.meta_updated);
+    if (key !== lastMeta) {
+      lastMeta = key;
+      const meta = await (await fetch("/api/meta")).json();
+      META_IMG = meta.images || {};
+      renderComps(meta); renderItems(meta);
+    }
+    if (String(s.global_updated) !== lastGlobal) {
+      lastGlobal = String(s.global_updated);
+      renderGlobal(await (await fetch("/api/global")).json());
+    }
+    if (String(s.profile_updated) !== lastProfile) {
+      lastProfile = String(s.profile_updated);
+      renderProfile(await (await fetch("/api/profile")).json());
+    }
+    if (String(s.advice_updated) !== lastAdvice) {
+      lastAdvice = String(s.advice_updated);
+      renderAdvice(await (await fetch("/api/advice")).json());
+    }
+  } catch {
+    const phase = $("phase");
+    phase.className = "pill p-rec";
+    phase.textContent = "MẤT KẾT NỐI";
+  }
+}
+
+$("btn-meta").onclick = () => { $("btn-meta").disabled = true; post("/api/meta/refresh"); };
+$("btn-research").onclick = () => { $("btn-research").disabled = true; post("/api/research"); };
+$("aug-search").oninput = renderAugs;
+document.querySelectorAll("#aug-tier button").forEach(b => b.onclick = () => {
+  AUG_TIER = b.dataset.t;
+  document.querySelectorAll("#aug-tier button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+  renderAugs();
+});
+(async () => {
+  try { AUGS = await (await fetch("/api/augments")).json(); renderAugs(); } catch {}
+})();
+$("min-games").oninput = () => renderGlobal(GLOBAL);
+document.querySelectorAll("#stats-sub button").forEach(b => b.onclick = () => {
+  STATS_SUB = b.dataset.sub;
+  document.querySelectorAll("#stats-sub button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+  renderGlobal(GLOBAL);
+});
+$("btn-profile").onclick = () => { $("btn-profile").disabled = true; post("/api/profile/refresh"); };
+
+async function setAccount(url) {
+  const msg = $("acct-msg");
+  msg.hidden = false;
+  msg.textContent = "Đang kiểm tra tài khoản...";
+  $("btn-detect").disabled = $("btn-acct").disabled = true;
+  try {
+    const r = await fetch(url, {method: "POST"});
+    const d = await r.json().catch(() => ({}));
+    msg.textContent = d.error ? d.error : "Đã lưu tài khoản, đang lấy hồ sơ...";
+  } catch (e) {
+    msg.textContent = "Không gọi được app: " + e;
+  }
+  refresh();
+}
+$("btn-detect").onclick = () => setAccount("/api/account?detect=1");
+$("report-close").onclick = () => { $("report-view").hidden = true; };
+document.querySelectorAll("#book-sub button").forEach(b => b.onclick = () => {
+  BOOK_TAB = b.dataset.b;
+  document.querySelectorAll("#book-sub button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+  renderBook();
+});
+$("btn-book").onclick = () => { $("btn-book").disabled = true; BOOK_PENDING = true; post("/api/handbook/refresh"); };
+(async () => {
+  try { BOOK = await (await fetch("/api/handbook")).json(); renderBook(); } catch {}
+})();
+
+function situationText() {
+  const v = id => ($(id).value || "").trim();
+  const lines = [
+    `Stage ${v("a-stage")} · ${v("a-hp")} máu · ${v("a-gold")} vàng · Level ${v("a-lvl")}` +
+      ` · chuỗi ${$("a-streak").value} ${v("a-streakn")}`,
+    `Mảnh đồ: ${v("a-comps") || "(không có)"}`,
+    `Đồ đã ghép: ${v("a-items") || "(chưa có)"}`,
+    `Tướng trên sân: ${v("a-board") || "(chưa ghi)"}`,
+    `Lõi đã có: ${v("a-had") || "(chưa ghi)"}`,
+    `Lõi đang phân vân: ${v("a-aug") || "(không chọn lõi lúc này)"}`,
+    `Sảnh: ${v("a-lobby") || "(không rõ)"}`,
+  ];
+  return lines.join("\n");
+}
+
+function renderAdvice(a) {
+  const el = $("advice");
+  if (!a || !a.text) return;
+  const html = window.marked ? marked.parse(a.text) : a.text.replace(/\n/g, "<br>");
+  el.innerHTML = (window.DOMPurify ? DOMPurify.sanitize(html) : html) +
+    '<p class="note" style="margin-top:12px">Tình huống lúc ' + esc(a.at || "") + ": " +
+    esc(String(a.situation || "").split("\n")[0]) + "</p>";
+}
+
+$("btn-advise").onclick = async () => {
+  const msg = $("a-msg");
+  $("btn-advise").disabled = true;
+  msg.textContent = "Đang gửi...";
+  try {
+    const r = await fetch("/api/advise", {method: "POST", headers: {"Content-Type": "application/json"},
+                                          body: JSON.stringify({situation: situationText()})});
+    const d = await r.json().catch(() => ({}));
+    msg.textContent = d.error ? d.error : "Bốn agent đang chạy, khoảng 1–2 phút...";
+    if (!d.error) $("advice").textContent = "Đang phân tích...";
+  } catch (e) {
+    msg.textContent = "Không gọi được app: " + e;
+  }
+  refresh();
+};
+$("btn-acct").onclick = () => {
+  const v = $("acct-input").value.trim();
+  if (!v.includes("#")) { $("acct-msg").hidden = false; $("acct-msg").textContent = "Nhập dạng Tên#TAG, ví dụ Jordi#2302"; return; }
+  setAccount("/api/account?riot_id=" + encodeURIComponent(v));
+};
+/* Thanh tiêu đề tự vẽ chỉ bật khi chạy trong cửa sổ app, không bật khi mở bằng trình duyệt */
+function enableTitlebar() {
+  document.body.classList.add("native");
+  const send = (what) => fetch("/api/window?do=" + what, {method: "POST"}).catch(() => {});
+  $("tb-min").onclick = () => send("min");
+  $("tb-max").onclick = () => send("max");
+  $("tb-close").onclick = () => send("close");
+}
+if (window.pywebview) enableTitlebar();
+else window.addEventListener("pywebviewready", enableTitlebar);
+
+refresh();
+setInterval(refresh, 2500);
+</script>
+</body>
+</html>

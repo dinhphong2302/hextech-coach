@@ -1,0 +1,30 @@
+# Cấu hình thật: chứa API key Riot, key Anthropic và đường dẫn cá nhân
+config.json
+
+# Toàn bộ dữ liệu app tự sinh: video, ảnh chụp màn hình, cache trận có puuid
+# và Riot ID của người chơi khác, hồ sơ cá nhân, transcript.
+data/
+
+# Nhật ký các lượt chạy nền
+*.log
+
+# Ảnh gốc dùng để sinh bộ icon (2 MB, chỉ cần khi đổi logo)
+assets/source.png
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Media lỡ nằm ngoài data/
+*.mp4
+*.avi
+
+# Biến môi trường
+.env
+
+# Ghi chú rà soát nội bộ (có trích dẫn key cũ)
+audit/
+.ruff_cache/
